@@ -17,24 +17,20 @@ class PipelineGen:
         self.system_context = f"{system_prefix}\n{template_prompt}"
         self.model_name = model_name
         self.max_token_length = max_token_length
-        self.component_message_chain=[
-            {"role": "system", "content": self.system_context}
-        ]
         
     def _get_code(self, choice_config: dict) -> str:
         return choice_config["message"]["content"].split("```")[1].removeprefix("\n")
         
-    def _generate_component_code_snippets(self, input_content: str, n_shot: int) -> str:
-        self.component_message_chain.append({"role": "user", "content": input_content})
+    def _generate_component_code_snippets(self, component_message_chain: list, n_shot: int) -> str:
         
         # max_tokens stops the review_n_components method from max_tokening out
-        max_component_tokens=(self.max_token_length - int(0.75 * (len(prompt.REVIEW_NSHOT_PROMPT.split(" ")) + len(prompt.REVIEW_RETURN_STRUCT.split(" ")))))
-        
+        max_component_tokens=(self.max_token_length - int((len(prompt.PIPELINE_TEMPLATE_PROMPT + prompt.COMPONNT_SYSTEM_PROMPT)) / 3))
+        logging.debug(f"Max component tokens: {max_component_tokens}")
         response = openai.ChatCompletion.create(
             model=self.model_name,
-            messages=self.component_message_chain,
+            messages=component_message_chain,
             n=n_shot,
-            max_tokens=max_component_tokens // n_shot if n_shot > 1 else max_component_tokens,
+            max_tokens=max_component_tokens // n_shot,
         )
         return [self._get_code(response["choices"][i]) for i in range(len(response["choices"]))]
     
@@ -100,17 +96,17 @@ class PipelineGen:
         if input_content == "":
             return "No input description... \n Recommend trying one of the examples!", ""
         
+        component_message_chain=[
+            {"role": "system", "content": self.system_context}
+        ]
+        component_message_chain.append({"role": "user", "content": input_content})
+        
         # Generate component code and output to .py file
-        n_shot_response_list = self._generate_component_code_snippets(input_content, n_shot)
+        n_shot_response_list = self._generate_component_code_snippets(component_message_chain, n_shot)
         
-        if len(n_shot_response_list) == 1:
-            # Case: n_shot == 1
-            component_code, accuracy_txt = n_shot_response_list[0], ""
-        else:
-            # Case: n_shot > 1, then run accuracy review capability and choose best code snippet.
-            component_code, accuracy_txt = self._review_n_components(n_shot_response_list)
+        component_code, accuracy_txt = self._review_n_components(n_shot_response_list)
         
-        self.component_message_chain.append({"role": "assistant", "content": component_code})
+        component_message_chain.append({"role": "assistant", "content": component_code})
         return component_code, accuracy_txt
         
         # pipeline_code = self.generate_example_pipeline()

@@ -20,6 +20,7 @@ class AutoGradioInterface:
             gr.outputs.Textbox(label="Component Code"), 
             gr.outputs.Textbox(label="Accuracy Prediction")
         ]
+        self._gradio_outputs[0].style(show_copy_button=True)
         self._gradio_examples = [
             ["Write a component that ingests a .csv file from GCS bucket path {GCS_BUCKET_PATH: string} as a Google Vertex Dataset", 2],
             ["Write a component that ingests all .parquet files in GCS bucket path {GCS_BUCKET_PATH: string} and uploads them into Google Cloud BigQuery, {DATASET: string}:{TABLE: string}.", 1],
