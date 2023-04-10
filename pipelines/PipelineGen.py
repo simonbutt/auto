@@ -19,7 +19,12 @@ class PipelineGen:
         self.max_token_length = max_token_length
         
     def _get_code(self, choice_config: dict) -> str:
-        return choice_config["message"]["content"].split("```")[1].removeprefix("\n")
+        response_code_list = choice_config["message"]["content"].split("```")
+        if len(response_code_list) > 1:
+            return response_code_list[1].removeprefix("\n")
+        else:
+            logging.warning("Generated response snippet doesn't contain ``` code block, highly likely to be incorrect")
+            return response_code_list[0]
         
     def _generate_component_code_snippets(self, component_message_chain: list, n_shot: int) -> str:
         
@@ -109,11 +114,6 @@ class PipelineGen:
         component_message_chain.append({"role": "assistant", "content": component_code})
         return component_code, accuracy_txt
         
-        # pipeline_code = self.generate_example_pipeline()
-        
-        # with open("target/component.py", "w") as f:
-        #     f.write(component_code + "\n" + pipeline_code)
-
 
 if __name__ == "__main__":
 
