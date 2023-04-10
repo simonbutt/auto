@@ -1,6 +1,6 @@
 import openai
 import json
-import pipelines.prompt as prompt
+import pipelines.prompts as prompt
 import logging
 
 
@@ -28,13 +28,13 @@ class PipelineGen:
         self.component_message_chain.append({"role": "user", "content": input_content})
         
         # max_tokens stops the review_n_components method from max_tokening out
-        max_component_tokens=(self.max_token_length - len(prompt.REVIEW_NSHOT_PROMPT) - len(prompt.REVIEW_RETURN_STRUCT)) // n_shot
+        max_component_tokens=(self.max_token_length - int(0.75 * (len(prompt.REVIEW_NSHOT_PROMPT.split(" ")) + len(prompt.REVIEW_RETURN_STRUCT.split(" ")))))
         
         response = openai.ChatCompletion.create(
             model=self.model_name,
             messages=self.component_message_chain,
             n=n_shot,
-            max_tokens=max_component_tokens
+            max_tokens=max_component_tokens // n_shot if n_shot > 1 else max_component_tokens,
         )
         return [self._get_code(response["choices"][i]) for i in range(len(response["choices"]))]
     
@@ -97,6 +97,8 @@ class PipelineGen:
             
             If the pipeline run fails, the self.message_chain is updated and the process is repeated.
         """
+        if input_content == "":
+            return "No input description... \n Recommend trying one of the examples!", ""
         
         # Generate component code and output to .py file
         n_shot_response_list = self._generate_component_code_snippets(input_content, n_shot)
@@ -109,8 +111,7 @@ class PipelineGen:
             component_code, accuracy_txt = self._review_n_components(n_shot_response_list)
         
         self.component_message_chain.append({"role": "assistant", "content": component_code})
-        print(f"Recommended component snippet:\n{component_code}\n\n---{accuracy_txt}")
-            
+        return component_code, accuracy_txt
         
         # pipeline_code = self.generate_example_pipeline()
         
