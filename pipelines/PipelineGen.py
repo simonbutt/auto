@@ -141,5 +141,4 @@ if __name__ == "__main__":
         input_content="Write a component that takes a GCS path containing multiple images (either .png or .json) {image_path: string} from a GCS bucket and uses grabcut to segment the images into a foreground and background. The component should output the foreground and background images to the GCS bucket in folder path {output_gcs_folder: string}.",
         n_shot=3
     )
-    # pgen._write_result_to_file(res, "target/component.py")
     

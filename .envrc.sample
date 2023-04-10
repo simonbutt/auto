@@ -1,0 +1,10 @@
+set -a
+
+export PYTHONPATH=$PYTHONPATH:$pwd
+export LOG_LEVEL="INFO"
+
+# Start public server
+export IS_PUBLIC="FALSE"
+
+export OPENAI_API_KEY=""
+export MODEL_NAME="gpt-3.5-turbo"
