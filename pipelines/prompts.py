@@ -75,6 +75,7 @@ PIPELINE_TEMPLATE_PROMPT="""
 Follow the following template to generate an example pipeline to run your component:
 ```
 from kfp.v2.dsl import pipeline
+import google.cloud.aiplatform as aip
 
 @pipeline(
     name="{PIPELINE_NAME}",
@@ -87,14 +88,33 @@ def {COMPONENT_NAME}_pipeline(
     "A pipeline that runs {COMPONENT_NAME}"
     {PIPELINE_CODE}
 
+
+
 pipeline_arguments={EXAMPLE_PIPELINE_ARGUMENTS}
 
-client = kfp.Client()
-client.create_run_from_pipeline_func(
-    {PIPELINE_NAME},
-    arguments={EXAMPLE_PIPELINE_ARGUMENTS},
-    mode=kfp.dsl.PipelineExecutionMode.V2_COMPATIBLE
+from kfp.v2 import compiler
+compiler.Compiler().compile(pipeline_func={PIPELINE_NAME},
+        package_path="lib/pipelines/{PIPELINE_NAME}.json")
+
+
+# Before initializing, make sure to set the GOOGLE_APPLICATION_CREDENTIALS
+# environment variable to the file path of your service account.
+aip.init(
+    project=PROJECT_ID,
+    location=PROJECT_REGION,
 )
+
+# Prepare the pipeline job
+job = aip.PipelineJob(
+    display_name={PIPELINE_NAME},
+    template_path="lib/pipelines/{PIPELINE_NAME}.json",
+    pipeline_root=pipeline_root_path,
+    parameter_values={
+        'project_id': PROJECT_ID
+    }
+)
+
+job.submit()
 
 ```
 """
