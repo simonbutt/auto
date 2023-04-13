@@ -27,7 +27,25 @@ pip install --upgrade poetry
 poetry install
 
 # Run Gradio server
-poetry run python pipelines/AutoGradioInterface.py
+poetry run python pipelines/AutoGradioBlocks.py
 ```
 
 The gradio interface will be available at `http://localhost:7860/`
+
+## User Journeys
+
+### 1. Create a KFP component for a given task
+
+![ComponentGen](./resources/componentgen.png)
+
+Component generation can also be done via the API. The API is available at `http://127.0.0.1:7860/run/generate_component`.  
+The API accepts a POST request with the following parameters:
+![ComponentGenAPI](./resources/componentapi.png)
+
+### 2. Refine and update the component accuracy review prompt
+
+![ReviewPrompt](./resources/reviewprompt.png)
+
+### 3. Create a KFP pipeline to run the component
+
+![PipelineGen](./resources/pipelinegen.png)

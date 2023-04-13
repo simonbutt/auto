@@ -82,7 +82,7 @@ class AutoGradioBlocks:
                     
                     file_type = gr.Text(value="pipelines", visible=False, interactive=False)
                     upload_pipeline_button.click(fn=self.pipegen.write_to_file, inputs=[pipegen_output, file_type], outputs=[])
-                    pipegen_button.click(fn=self.pipegen.generate_pipeline, inputs=[selected_components], outputs=[pipegen_output])
+                    pipegen_button.click(fn=self.pipegen.generate_pipeline, inputs=[selected_components], outputs=[pipegen_output], api_name="generate_pipeline")
                     
 
             with gr.TabItem("Deploy"):
