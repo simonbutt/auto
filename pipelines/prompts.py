@@ -14,12 +14,14 @@ COMPONENT_SYSTEM_PROMPT = """You are an AI Python developer assistant.
 _example_prompt_input = "Write a component that validates a CSV dataset against a Great Expectations suite and create Data Doc (a validation report). This component fails if validation is not successful."
 with open("examples/great_expectations_validate_csv.py") as example_file:
     _example_text = example_file.read()
-COMPONENT_SYSTEM_EXAMPLE = f"# Example component\n{_example_prompt_input}\n```\n{_example_text}\n```\n"
+COMPONENT_SYSTEM_EXAMPLE = (
+    f"# Example component\n{_example_prompt_input}\n```\n{_example_text}\n```\n"
+)
 print(COMPONENT_SYSTEM_EXAMPLE)
 COMPONENT_SYSTEM_FULL_CONTEXT = f"{COMPONENT_SYSTEM_PROMPT}\n{COMPONENT_SYSTEM_EXAMPLE}"
 
 # KFP component template return structure
-COMPONENT_TEMPLATE_PROMPT="""
+COMPONENT_TEMPLATE_PROMPT = """
 Follow the following template to generate the code for your component:
 ```
 from kfp.v2.dsl import Dataset, Input, Output, Model, component
@@ -80,7 +82,7 @@ Return the message in the following JSON list structure
 """
 
 # KFP pipeline generation return structure
-PIPELINE_TEMPLATE_PROMPT="""
+PIPELINE_TEMPLATE_PROMPT = """
 Follow the following template to generate an example pipeline to run your component:
 ```
 from kfp.v2.dsl import pipeline

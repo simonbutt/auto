@@ -4,7 +4,7 @@ from kfp.v2.dsl import component, Dataset
 
 @component(
     base_image="python:3.8",
-    packages_to_install=['great-expectations==0.13.11'],
+    packages_to_install=["great-expectations==0.13.11"],
     output_component_file=str(Path(__file__).with_suffix(".yaml")),
 )
 def validate_csv_using_greatexpectations(
@@ -28,17 +28,17 @@ def validate_csv_using_greatexpectations(
     from great_expectations.render.renderer import ValidationResultsPageRenderer
     import logging
 
-    with open(expectation_suite_path, 'r') as json_file:
+    with open(expectation_suite_path, "r") as json_file:
         expectation_suite = json.load(json_file)
     df = ge.read_csv(csv_path, expectation_suite=expectation_suite)
     result = df.validate()
 
     document_model = ValidationResultsPageRenderer().render(result)
     os.makedirs(os.path.dirname(data_doc_path), exist_ok=True)
-    with open(data_doc_path, 'w') as writer:
+    with open(data_doc_path, "w") as writer:
         writer.write(DefaultJinjaPageView().render(document_model))
 
-    logging.info(f'Saved: {data_doc_path}')
+    logging.info(f"Saved: {data_doc_path}")
 
     if not result.success:
         sys.exit(1)
