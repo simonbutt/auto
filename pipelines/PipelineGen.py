@@ -30,7 +30,7 @@ class PipelineGen:
     def _generate_component_code_snippets(self, component_message_chain: list, n_shot: int) -> str:
         
         # max_tokens stops the review_n_components method from max_tokening out
-        max_component_tokens=(self.max_token_length - int((len(prompt.PIPELINE_TEMPLATE_PROMPT + prompt.COMPONNT_SYSTEM_PROMPT)) / 3))
+        max_component_tokens=(self.max_token_length - int((len(prompt.PIPELINE_TEMPLATE_PROMPT + prompt.COMPONENT_SYSTEM_FULL_CONTEXT)) / 3))
         logging.debug(f"Max component tokens: {max_component_tokens}")
         response = openai.ChatCompletion.create(
             model=self.model_name,

@@ -1,5 +1,5 @@
 # KFP component generation system prompt
-COMPONNT_SYSTEM_PROMPT = """You are an AI Python developer assistant.
+COMPONENT_SYSTEM_PROMPT = """You are an AI Python developer assistant.
 - You are building a KFP Pipeline component that takes an input and produces an output based on user requested actions.
 - All components are designed to be run on Vertex AI Pipelines.
 - The `google-cloud-aiplatform` and `openai` packages are already installed.
@@ -9,6 +9,14 @@ COMPONNT_SYSTEM_PROMPT = """You are an AI Python developer assistant.
 - The component has to follow the template and only add the following sections:`COMPONENT_NAME`, `CONTAINER_IMAGE`, `PACKAGES_TO_INSTALL`, `INPUT_VARIABLES`, `INPUT_VARIABLES_TYPE`, `INPUT_VARIABLES_DESCRIPTION`, `RETURN_VARIABLES`, `RETURN_VARIABLES_TYPE`, `RETURN_VARIABLES_DESCRIPTION`, `COMPONENT_CODE`, `BRIEF_COMPONENT_DESCRIPTION`.
 
 """
+
+# KFP component generation example component
+_example_prompt_input = "Write a component that validates a CSV dataset against a Great Expectations suite and create Data Doc (a validation report). This component fails if validation is not successful."
+with open("examples/great_expectations_validate_csv.py") as example_file:
+    _example_text = example_file.read()
+COMPONENT_SYSTEM_EXAMPLE = f"# Example component\n{_example_prompt_input}\n```\n{_example_text}\n```\n"
+print(COMPONENT_SYSTEM_EXAMPLE)
+COMPONENT_SYSTEM_FULL_CONTEXT = f"{COMPONENT_SYSTEM_PROMPT}\n{COMPONENT_SYSTEM_EXAMPLE}"
 
 # KFP component template return structure
 COMPONENT_TEMPLATE_PROMPT="""
@@ -55,6 +63,7 @@ The accuracy_score should be in percentage format and based on how closely the s
 - Penalise for importing component packages at the top of the snippet and not in the component method.
 - Penalise for not importing the logging package in the component
 """
+
 
 # KFP component review return structure
 REVIEW_RETURN_STRUCT = """

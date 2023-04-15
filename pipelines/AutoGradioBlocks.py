@@ -8,7 +8,7 @@ class AutoGradioBlocks:
 
     def __init__(self, model_name: str="gpt-3.5-turbo"):
         self.pipegen = PipelineGen(
-            system_prefix=prompt.COMPONNT_SYSTEM_PROMPT,
+            system_prefix=prompt.COMPONENT_SYSTEM_FULL_CONTEXT,
             template_prompt=prompt.COMPONENT_TEMPLATE_PROMPT,
             model_name=model_name
         )
