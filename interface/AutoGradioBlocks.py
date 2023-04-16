@@ -5,11 +5,11 @@ import prompts.component as component_prompt
 
 
 class AutoGradioBlocks:
-    
+
     """
     AutoGradioBlocks provides an extended interface with the aim of generating entire pipelines using the Auto Gradio API.
     """
-    
+
     def __init__(self, model_name: str = "gpt-3.5-turbo"):
         self.compgen = ComponentGen(
             model_name=model_name,
@@ -57,7 +57,7 @@ class AutoGradioBlocks:
 
                         upload_button = gr.Button("Upload Component")
                         test_button = gr.Button("Run Component Test")
-                        
+
                         compgen_test_output = gr.Code(
                             language="python", label="Component Test", interactive=True
                         )
@@ -84,13 +84,10 @@ class AutoGradioBlocks:
                     )
                     test_button.click(
                         fn=self.compgen.test_component,
-                        inputs=[
-                            compgen_output,
-                            compgen_test_output
-                        ],
-                        outputs=[]
+                        inputs=[compgen_output, compgen_test_output],
+                        outputs=[],
                     )
-                    
+
             with gr.TabItem("Review Prompt"):
                 review_info = "Review the following kfp component code snippets and return a snippet_name, accuracy_score and accuracy_summary for each component."
                 review_prompt = gr.Textbox(

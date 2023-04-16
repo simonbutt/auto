@@ -3,13 +3,9 @@ from langchain.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
     AIMessagePromptTemplate,
-    HumanMessagePromptTemplate
+    HumanMessagePromptTemplate,
 )
-from langchain.schema import (
-    AIMessage,
-    HumanMessage,
-    SystemMessage
-)
+from langchain.schema import AIMessage, HumanMessage, SystemMessage
 import json
 import prompts.component as component_prompt
 import logging
@@ -25,21 +21,18 @@ class ComponentGen:
     """
 
     def __init__(
-        self,
-        model_name: str,
-        temperature: float = 0.7,
-        review_temperature: float = 0.2
+        self, model_name: str, temperature: float = 0.7, review_temperature: float = 0.2
     ) -> None:
         self.system_context = f"{component_prompt.COMPONENT_SYSTEM_FULL_CONTEXT}\n{component_prompt.COMPONENT_TEMPLATE_PROMPT}"
         self.chat = ChatOpenAI(
             model_name=model_name,
             temperature=temperature,
-        ) 
+        )
         self.review = ChatOpenAI(
             model_name=model_name,
             temperature=review_temperature,
         )
-        
+
         self.template_prompt = component_prompt.COMPONENT_TEMPLATE_PROMPT
         self.review_prompt = component_prompt.REVIEW_PROMPT
 
@@ -52,14 +45,14 @@ class ComponentGen:
                 "Generated response snippet doesn't contain ``` code block, highly likely to be incorrect"
             )
             return response_code_list[0]
-        
+
     def _generate_component_snippet(self, input_content) -> str:
         """
         Generates a KFP component based on the user's input.
-        
+
         TODO: Look into autoprompt/similar and provide a better way to do n_shot by varying the prompt.
         """
-        
+
         ai_message = self.chat(component_message_chain)
         return self._get_code(ai_message.content)
 
@@ -68,13 +61,13 @@ class ComponentGen:
         Takes n component code snippets and returns the snippet with the highest accuracy score.
         This score is determined by the model and is based on prompt.REVIEW_NSHOT_PROMPT.
         """
-        
+
         component_snippet_text = f"Component request: {input_content}\nGenerated component:\n```\n{generated_component}\n```\n"
         logging.debug(component_snippet_text)
 
         review_message_chain = [
             SystemMessage(content=self.review_prompt),
-            HumanMessage(content=f"{component_snippet_text}")
+            HumanMessage(content=f"{component_snippet_text}"),
         ]
 
         review_ai_response = self.review(review_message_chain)
@@ -85,7 +78,6 @@ class ComponentGen:
         Updates the review prompt used by the review_n_components method.
         """
         self.review_prompt = review_prompt
-
 
     def write_to_file(self, component_code: str) -> None:
         """
@@ -114,21 +106,23 @@ class ComponentGen:
                 "No input description... \n Recommend trying one of the examples!",
                 "",
             )
-        
+
         component_message_chain = [
-            SystemMessage(content = self.system_context),
-            HumanMessage(content = input_content)
+            SystemMessage(content=self.system_context),
+            HumanMessage(content=input_content),
         ]
-            
+
         # Generate component code and output to .py file
         component_ai_message = self.chat(component_message_chain)
         component_code = self._get_code(component_ai_message.content)
-        
+
         if write_test:
             # Write a test for the component
-            component_message_chain.append(AIMessage(content = component_code))
-            component_message_chain.append(HumanMessage(content = component_prompt.UNIT_TEST_PROMPT))
-        
+            component_message_chain.append(AIMessage(content=component_code))
+            component_message_chain.append(
+                HumanMessage(content=component_prompt.UNIT_TEST_PROMPT)
+            )
+
             test_ai_message = self.chat(component_message_chain)
             test_code = self._get_code(test_ai_message.content)
         else:

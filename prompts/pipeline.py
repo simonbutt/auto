@@ -1,5 +1,3 @@
-
-
 # KFP pipeline generation return structure
 PIPELINE_TEMPLATE_PROMPT = """
 Create a pipeline that runs the component you just created.
