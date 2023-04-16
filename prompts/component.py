@@ -1,3 +1,4 @@
+## COMPONENT PROMPTS
 # KFP component generation system prompt
 COMPONENT_SYSTEM_PROMPT = """You are an AI Python developer assistant.
 - You are building a KFP Pipeline component that takes an input and produces an output based on user requested actions.
@@ -17,7 +18,6 @@ with open("examples/great_expectations_validate_csv.py") as example_file:
 COMPONENT_SYSTEM_EXAMPLE = (
     f"# Example component\n{_example_prompt_input}\n```\n{_example_text}\n```\n"
 )
-print(COMPONENT_SYSTEM_EXAMPLE)
 COMPONENT_SYSTEM_FULL_CONTEXT = f"{COMPONENT_SYSTEM_PROMPT}\n{COMPONENT_SYSTEM_EXAMPLE}"
 
 # KFP component template return structure
@@ -54,9 +54,16 @@ def {COMPONENT_NAME}(
 ```
 """
 
+UNIT_TEST_PROMPT = """
+Write a unit test for the component code.
+- Provide example input and output data for the component and test that the component runs successfully, providing the correct output.
+- Any calls to external services, use the `mock` package to mock the response.
+- Any uploads to GCS should be mocked.
+"""
+
 # KFP component review system prompt
-REVIEW_NSHOT_PROMPT = """
-Review the following kfp component code snippets and return a snippet_name, accuracy_score and accuracy_summary for each component.
+REVIEW_PROMPT = """
+Review the following kfp component code snippets and return a snippet_name, accuracy_score (percentage %) and accuracy_summary for each component.
 
 The accuracy_score should be in percentage format and based on how closely the snippets follows:
 - Ability to complete the users request
@@ -64,68 +71,4 @@ The accuracy_score should be in percentage format and based on how closely the s
 - System kfp component template
 - Penalise for importing component packages at the top of the snippet and not in the component method.
 - Penalise for not importing the logging package in the component
-"""
-
-
-# KFP component review return structure
-REVIEW_RETURN_STRUCT = """
---------
-Return the message in the following JSON list structure
-
-[
-  {
-    "snippet_name": int,
-    "accuracy_score": int,
-    "accuracy_summary": string
-  }
-]
-"""
-
-# KFP pipeline generation return structure
-PIPELINE_TEMPLATE_PROMPT = """
-Follow the following template to generate an example pipeline to run your component:
-```
-from kfp.v2.dsl import pipeline
-import google.cloud.aiplatform as aip
-
-@pipeline(
-    name="{PIPELINE_NAME}",
-    description="",
-    pipeline_root=""
-)
-def {COMPONENT_NAME}_pipeline(
-    {INPUT_VARIABLES}: {INPUT_VARIABLES_TYPE},
-):
-    "A pipeline that runs {COMPONENT_NAME}"
-    {PIPELINE_CODE}
-
-
-
-pipeline_arguments={EXAMPLE_PIPELINE_ARGUMENTS}
-
-from kfp.v2 import compiler
-compiler.Compiler().compile(pipeline_func={PIPELINE_NAME},
-        package_path="lib/pipelines/{PIPELINE_NAME}.json")
-
-
-# Before initializing, make sure to set the GOOGLE_APPLICATION_CREDENTIALS
-# environment variable to the file path of your service account.
-aip.init(
-    project=PROJECT_ID,
-    location=PROJECT_REGION,
-)
-
-# Prepare the pipeline job
-job = aip.PipelineJob(
-    display_name={PIPELINE_NAME},
-    template_path="lib/pipelines/{PIPELINE_NAME}.json",
-    pipeline_root=pipeline_root_path,
-    parameter_values={
-        'project_id': PROJECT_ID
-    }
-)
-
-job.submit()
-
-```
 """
