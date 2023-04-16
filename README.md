@@ -18,7 +18,7 @@ Current Implementation Steps:
 
 <br>  
 
-To install packages and run the gradio server:
+To install packages and run the lightweight ComponentGen gradio server:
 ```
 # Install poetry
 pip install --upgrade poetry 
@@ -26,11 +26,16 @@ pip install --upgrade poetry
 # Poetry install packages
 poetry install
 
-# Run Gradio server
-poetry run python pipelines/AutoGradioBlocks.py
+# Run lightweight Gradio server
+poetry run python pipelines/AutoGradioInterface.py
 ```
 
 The gradio interface will be available at `http://localhost:7860/`
+
+To run the WIP full application:
+```
+poetry run python pipelines/AutoGradioBlocks.py
+```
 
 ## User Journeys
 

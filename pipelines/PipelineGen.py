@@ -1,171 +1,93 @@
-import openai
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    SystemMessagePromptTemplate,
+    AIMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
+from langchain.schema import AIMessage, HumanMessage, SystemMessage
 import json
-import pipelines.prompts as prompt
+import prompts.pipeline as pipeline_prompt
+import prompts.component as component_prompt
 import logging
 
 
 class PipelineGen:
-    
+
     """
-        PipelineGen is a class that contains the methods to generate Vertex pipeline components based on the user's input.
-        
-        PipelineGen uses the OpenAI GPT-3 API to generate the code. 
-        It will then attempt to deploy the code to the user's Google Cloud environment and learn from failed pipeline runs.
+    PipelineGen is a class that contains the methods to generate Vertex pipeline components based on the user's input.
+
+    PipelineGen uses the OpenAI GPT-3 API to generate the code.
+    It will then attempt to deploy the code to the user's Google Cloud environment and learn from failed pipeline runs.
     """
-    
-    def __init__(self, system_prefix: str, template_prompt: str, model_name: str, max_token_length: int=4097) -> None:
-        self.system_context = f"{system_prefix}\n{template_prompt}"
-        self.model_name = model_name
-        self.review_prompt = prompt.REVIEW_NSHOT_PROMPT
-        self.max_token_length = max_token_length
-        
-    def _get_code(self, choice_config: dict) -> str:
-        response_code_list = choice_config["message"]["content"].split("```")
+
+    def __init__(self, model_name: str, temperature: float = 0.2) -> None:
+        self.system_context = f"{component_prompt.COMPONENT_SYSTEM_FULL_CONTEXT}\n{component_prompt.COMPONENT_TEMPLATE_PROMPT}"
+        self.pipeline_prompt = pipeline_prompt.PIPELINE_TEMPLATE_PROMPT
+        self.chat = ChatOpenAI(model_name=model_name, temperature=temperature)
+
+    def _get_code(self, generated_text: dict) -> str:
+        response_code_list = generated_text.split("```")
         if len(response_code_list) > 1:
             return response_code_list[1].removeprefix("\n")
         else:
-            logging.warning("Generated response snippet doesn't contain ``` code block, highly likely to be incorrect")
+            logging.warning(
+                "Generated response snippet doesn't contain ``` code block, highly likely to be incorrect"
+            )
             return response_code_list[0]
-        
-    def _generate_component_code_snippets(self, component_message_chain: list, n_shot: int) -> str:
-        
-        # max_tokens stops the review_n_components method from max_tokening out
-        max_component_tokens=(self.max_token_length - int((len(prompt.PIPELINE_TEMPLATE_PROMPT + prompt.COMPONNT_SYSTEM_PROMPT)) / 3))
-        logging.debug(f"Max component tokens: {max_component_tokens}")
-        response = openai.ChatCompletion.create(
-            model=self.model_name,
-            messages=component_message_chain,
-            n=n_shot,
-            max_tokens=max_component_tokens // n_shot,
-        )
-        return [self._get_code(response["choices"][i]) for i in range(len(response["choices"]))]
-    
-    def _review_n_components(self, nshot_messages: list) -> str:
-        """
-        Takes n component code snippets and returns the snippet with the highest accuracy score.
-        This score is determined by the model and is based on prompt.REVIEW_NSHOT_PROMPT.
-        """
-        snippet_txt = "\n\n".join([
-            f"{i}.\n```{nshot_messages[i]}```" for i in range(len(nshot_messages))
-        ])
-        
-        logging.debug(f"Component snippet text: {snippet_txt}")
-        
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": self.review_prompt},
-                {"role": "user", "content": f"{snippet_txt}\n{prompt.REVIEW_RETURN_STRUCT}"}
-            ],
-            temperature=0.2
-        )
-        review_config_raw = response["choices"][0]["message"]["content"]
 
-        try:
-            review_config = json.loads(review_config_raw)
-            # Returns the a config with in format {accuracy_score: snippet_name}
-            accuracy_key_config = res = {
-                val["accuracy_score"]: [val["snippet_name"], val["accuracy_summary"]] for val in review_config
-            }
-            # Chooses the snippet with the highest accuracy score
-            key = max(accuracy_key_config.keys())
-            return nshot_messages[accuracy_key_config[key][0]], f"Accuracy Prediction: {key}%\nAccuracy Summary: {accuracy_key_config[key][1]}"
-            
-        except json.JSONDecodeError:
-            logging.warning(f"Review config JSON decode error: {review_config_raw}, returning initial n_shot message.")
-            return nshot_messages[0], f"Failed to review {len(nshot_messages)} n_shot component snippets."
-        
-    def update_review_prompt(self, review_prompt: str) -> None:
+    def generate_pipeline(
+        self, component_name, environment_variables: list = []
+    ) -> str:
         """
-            Updates the review prompt used by the review_n_components method.
-        """
-        self.review_prompt = review_prompt
-         
-    
-    def generate_pipeline(self, component_name) -> str:
-        """
-            TODO
-            Generates a pipeline that includes the component code generated by generate_component
+        Generates a pipeline that includes the component code generated by generate_component
+
+        Limitation: Currently only allows for a single component. TODO: Allow for multiple components and DAG generation.
         """
         with open(f"./lib/component/{component_name[0]}.py", "r") as f:
             component_code = f.read()
-            
-        component_message_chain = [
-            {"role": "system", "content": self.system_context},
-            {"role": "user", "content": f"Write a component that {component_name}"},
-            {"role": "assistant", "content": component_code},
-            {"role": "system", "content": prompt.PIPELINE_TEMPLATE_PROMPT}
-        ]
-        response = openai.ChatCompletion.create(
-            model=self.model_name,
-            messages=component_message_chain,
-            n=1,
-        )
-        return self._get_code(response["choices"][0])
-    
-    def write_to_file(self, component_code: str, file_type="component") -> None:
-        """
-            Writes the component code to a .py file
-        """
-        component_name = component_code.split("def ")[1].split("(")[0]
-        
-        with open(f"./lib/{file_type}/{component_name}.py", "w") as f:
-            f.write(component_code)
 
-    def generate_component(self, input_content, n_shot=3):
-        """
-            Completes an iteration of:
-            - Given latest input, model generates code
-            - Model code is written to file as a pipeline component
-            - Component is compiled
-            - Example pipeline run including only the component code is created
-            - Human evaluates the pipeline run code and approves
-            - pipeline is deployed and successfully runs on Vertex AI
-            - Test output data against expected output.
-            
-            If the pipeline run fails, the self.message_chain is updated and the process is repeated.
-        """
-        if input_content == "":
-            return "No input description... \n Recommend trying one of the examples!", ""
-        
-        component_message_chain=[
-            {"role": "system", "content": self.system_context}
+        component_message_chain = [
+            SystemMessage(content=self.system_context),
+            HumanMessage(content=f"Write a component that {component_name}"),
+            AIMessage(content=component_code),
+            HumanMessage(content=self.pipeline_prompt),
         ]
-        component_message_chain.append({"role": "user", "content": input_content})
-        
-        # Generate component code and output to .py file
-        n_shot_response_list = self._generate_component_code_snippets(component_message_chain, n_shot)
-        
-        component_code, accuracy_txt = self._review_n_components(n_shot_response_list)
-        
-        component_message_chain.append({"role": "assistant", "content": component_code})
-        return component_code, accuracy_txt
-        
+        ai_pipeline_response = self.chat(
+            component_message_chain,
+        )
+        return self._get_code(ai_pipeline_response.content)
+
+    def write_to_file(self, pipeline_code: str) -> None:
+        """
+        Writes the component code to a .py file
+        """
+        pipeline_name = pipeline_code.split("def ")[1].split("(")[0]
+
+        with open(f"./lib/pipeline/{pipeline_name}.py", "w") as f:
+            f.write(pipeline_code)
+
 
 if __name__ == "__main__":
-
     import os
-    
+
     log_dict = {
         "debug": logging.DEBUG,
         "info": logging.INFO,
         "warning": logging.WARNING,
-        "error": logging.ERROR
+        "error": logging.ERROR,
     }
-    
+
     # Log Level default to INFO
-    logging.basicConfig(level=log_dict.get(os.getenv("LOG_LEVEL", "INFO").lower(), "INFO"))
+    logging.basicConfig(
+        level=log_dict.get(os.getenv("LOG_LEVEL", "INFO").lower(), "INFO")
+    )
     model_name: str = os.getenv("MODEL_NAME")
 
-    
     pgen = PipelineGen(
         system_prefix=prompt.SYSTEM_PREFIX,
-        template_prompt=prompt.COMPONENT_TEMPLATE_PROMPT,
-        model_name=model_name
+        template_prompt=prompt.PIPELINE_TEMPLATE_PROMPT,
+        model_name=model_name,
     )
-    
-    pgen.generate_component(
-        input_content="Write a component that takes a GCS path containing multiple images (either .png or .json) {image_path: string} from a GCS bucket and uses grabcut to segment the images into a foreground and background. The component should output the foreground and background images to the GCS bucket in folder path {output_gcs_folder: string}.",
-        n_shot=3
-    )
-    
+
+    pgen.generate_pipeline(component_name="add")
