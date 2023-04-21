@@ -165,3 +165,4 @@ terraform/variables.auto.tfvars.json
 .envrc
 flagged
 component_lib
+nbs
