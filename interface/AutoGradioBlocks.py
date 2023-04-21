@@ -78,7 +78,7 @@ class AutoGradioBlocks:
                     upload_button.click(
                         fn=self.compgen.write_to_file,
                         inputs=[
-                            compgen_output,
+                            compgen_output, compgen_test_output
                         ],
                         outputs=[],
                     )
@@ -87,6 +87,39 @@ class AutoGradioBlocks:
                         inputs=[compgen_output, compgen_test_output],
                         outputs=[],
                     )
+            
+            with gr.TabItem("Test Component"):
+                
+                test_components = lambda: [
+                    component_test.replace(".py", "")
+                    for component_test in os.listdir("lib/component/")
+                    if "test_" in component_test
+                ]
+                
+                with gr.Row():
+                    with gr.Column():
+                        selected_component = gr.Radio(
+                            test_components(),
+                            label="Component Tests",
+                            info="The following component tests are available:",
+                            interactive=True,
+                        )
+                    with gr.Column():
+                        run_test_button = gr.Button("Run Test", variant="primary")
+                        auto_fix_button = gr.Button("Auto Fix", variant="primary")
+                        
+                with gr.Row():
+                    with gr.Column():
+                        summary_output = gr.Textbox(label="Test Summary", interactive=False)
+                        full_output = gr.Textbox(label="Full Output", interactive=False, visible=True)
+                    with gr.Column():
+                        component_code = gr.Code(interactive=True, label="Component", language="python")
+                        component_test_code = gr.Code(interactive=True, label="Component Test", language="python")
+            
+                run_test_button.click(self.compgen.display_component_code, inputs=[selected_component], outputs=[component_code, component_test_code])
+                run_test_button.click(self.compgen.test_component, inputs=[selected_component], outputs=[summary_output, full_output])
+                auto_fix_button.click(self.compgen.auto_fix_component, inputs=[selected_component, summary_output, full_output], outputs=[component_code, component_test_code])    
+
 
             with gr.TabItem("Review Prompt"):
                 review_info = "Review the following kfp component code snippets and return a snippet_name, accuracy_score and accuracy_summary for each component."
@@ -111,7 +144,7 @@ class AutoGradioBlocks:
 
                         get_components = lambda: [
                             val.replace(".py", "")
-                            for val in os.listdir("lib/component/")
+                            for val in os.listdir("lib/component/") if "test_" not in val
                             if ".py" in val
                         ]
                         selected_components = gr.CheckboxGroup(

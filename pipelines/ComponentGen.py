@@ -8,6 +8,7 @@ from langchain.prompts.chat import (
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 import json
 import prompts.component as component_prompt
+import subprocess
 import logging
 
 
@@ -79,14 +80,17 @@ class ComponentGen:
         """
         self.review_prompt = review_prompt
 
-    def write_to_file(self, component_code: str) -> None:
+    def write_to_file(self, component_code: str, component_test: str) -> None:
         """
         Writes the component code to a .py file
         """
         component_name = component_code.split("def ")[1].split("(")[0]
+        test_name = f"test_{component_name}"
 
         with open(f"./lib/component/{component_name}.py", "w") as f:
             f.write(component_code)
+        with open(f"./lib/component/{test_name}.py", "w") as f:
+            f.write(component_test)
 
     def generate_component(self, input_content, write_test=True):
         """
@@ -124,7 +128,7 @@ class ComponentGen:
             )
 
             test_ai_message = self.chat(component_message_chain)
-            test_code = self._get_code(test_ai_message.content)
+            test_code = self._get_code(test_ai_message.content).removeprefix("python")
         else:
             test_code = ""
 
@@ -132,12 +136,27 @@ class ComponentGen:
 
         return component_code, test_code, accuracy_text
 
-    def test_component(self, component_code: str, test_code: str) -> str:
+    def test_component(self, component_test: list) -> str:
         """
         Runs the test code to test the generated component.
-        # TODO: Implement this
+        
+        Returns stdout from the test run.
         """
-        pass
+        process = subprocess.Popen(["pytest", f"lib/component/{component_test}.py", "--disable-warnings"], stdout=subprocess.PIPE)
+        full_output = process.stdout.read().decode("utf-8")
+        summary = full_output.split("========================")[-2]
+        return summary, full_output
+    
+    def display_component_code(self, selected_test_component: str):
+        with open(f"./lib/component/{selected_test_component.removeprefix('test_')}.py", "r") as f:
+            component = f.read()
+        with open(f"./lib/component/{selected_test_component}.py", "r") as f:
+            test_component = f.read()
+        return component, test_component
+    
+    def auto_fix_component(self, selected_component, summary_output, full_output):
+        # TODO
+        return full_output, "Hello"
 
 
 if __name__ == "__main__":

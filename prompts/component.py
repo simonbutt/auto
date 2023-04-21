@@ -20,6 +20,7 @@ COMPONENT_SYSTEM_EXAMPLE = (
 )
 COMPONENT_SYSTEM_FULL_CONTEXT = f"{COMPONENT_SYSTEM_PROMPT}\n{COMPONENT_SYSTEM_EXAMPLE}"
 
+# TODO: Incorporate kfp inputs/output datasets (https://stackoverflow.com/questions/73953744/how-to-test-kfp-components-with-pytest)
 # KFP component template return structure
 COMPONENT_TEMPLATE_PROMPT = """
 Follow the following template to generate the code for your component:
@@ -59,6 +60,7 @@ Write a unit test for the component code.
 - Provide example input and output data for the component and test that the component runs successfully, providing the correct output.
 - Any calls to external services, use the `mock` package to mock the response.
 - Any uploads to GCS should be mocked.
+- Import the component method as `from lib.component.{COMPONENT_NAME} import {COMPONENT_NAME}`.
 """
 
 # KFP component review system prompt
